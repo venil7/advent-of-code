@@ -1,92 +1,88 @@
-# file_name = "data/test.txt"
+from functools import reduce
+
+
 file_name = "data/day-16.txt"
+# file_name = "data/test.txt"
 
 
-def get_raw() -> str:
+def get_lines() -> list[str]:
     with open(file_name, "rt") as file:
-        return file.read()
+        return [line.strip() for line in file.readlines()]
 
 
-# version, bits consumed, remainder str, list of children
-ReadResult = tuple[int, int, str, list]
-
-
+SUM = 0
+PRODUCT = 1
+MIN = 2
+MAX = 3
 LITERAL = 4
+GT = 5
+LT = 6
+EQ = 7
 
 
-def hex2bin(s: str) -> str:
-    num = int(s, 16)
-    binary = "{0:b}".format(num)
-    while len(binary) % 4 != 0:
-        binary = '0'+binary
-    return binary
+def prod(*nums: list[int]) -> int:
+    return reduce(lambda a, b: a*b, nums)
 
 
-def bin2dec(s: str) -> int:
-    return int(s, 2)
+def sum(*nums: list[int]) -> int:
+    return reduce(lambda a, b: a+b, nums)
 
 
-def parse(binary: str) -> list[ReadResult]:
-    (ver, typ, data) = bin2dec(binary[0:3]),  bin2dec(binary[3:6]), binary[6:]
-
-    if typ == LITERAL:
-        (_, bits_consumed, remainder, children) = literal(ver, data)
-        return [(ver, 6+bits_consumed, remainder, children)]
-    else:
-        children = operator(data)
-        (_, bits_consumed, remainder, _) = reduce(children)
-        return [(ver, 6+bits_consumed, remainder, children)]
+# def id(*x: list[int]) -> int: return x[0]
+def mmin(*xs: list[int]) -> int: return min(list(xs))
+def mmax(*xs: list[int]) -> int: return max(list(xs))
+def gt(a, b) -> int: return 1 if a > b else 0
+def lt(a, b) -> int: return 1 if a < b else 0
+def eq(a, b) -> int: return 1 if a == b else 0
 
 
-def literal(ver: int, bits: str) -> ReadResult:
-    res = ''
-    for i in range(0, len(bits), 5):
-        res += bits[i+1:i+5]
-        if bits[i] == '0':
-            break
-    val = bin2dec(res)
-    return (ver, len(res) + (i+1), bits[i*5+5:], [])
+ops = (sum, prod, mmin, mmax, None, gt, lt, eq)
 
 
-def reduce(children: list[ReadResult]) -> ReadResult:
-    (ver, bits, rem) = 0, 0, ''
-    for (v, b, r, _) in children:
-        ver += v
-        bits += b
-        rem = r
-    return (ver, bits, rem, children)
+def parser(line: str) -> tuple[int, int]:
+    bits = (int(bit) for ch in line for bit in "{:04b}".format(int(ch, 16)))
+    pos = 0
+    ver = 0
 
+    def read_bits(num: int) -> int:
+        nonlocal pos
+        pos += num
+        return int(''.join([str(next(bits)) for _ in range(num)]), 2)
 
-def operator(bits: str) -> list[ReadResult]:
-    length_type_id = bits[0]
-    readabale_data = bits[1:]
-    res = []
-    if length_type_id == '0':
-        num_bits_to_read = bin2dec(readabale_data[:15])
-        data = readabale_data[15:15+num_bits_to_read]
-        remainder = readabale_data[15+num_bits_to_read:]
-        total_bits_consumed = 0
-        while num_bits_to_read > 0 and total_bits_consumed < num_bits_to_read:
-            (ver, bits_consumed, data, children) = reduce(parse(data))
-            total_bits_consumed += bits_consumed
-            res.append((ver, 1 + 15 + num_bits_to_read, remainder, children))
-    elif length_type_id == '1':
-        num_sub_packets = bin2dec(bits[1:12])
-        data = bits[12:]
-        for i in range(num_sub_packets):
-            (ver, bits_consumed, data, children) = reduce(parse(data))
-            res.append((ver, 1 + 11 + bits_consumed, data, children))
-    return res
+    def read_packet() -> int:
+        nonlocal ver
+        ver += read_bits(3)
+        typ = read_bits(3)
+        if typ == LITERAL:
+            val = 0
+            while True:
+                delim = read_bits(1)
+                val = (val << 4) | read_bits(4)
+                if delim == 0:
+                    break
+            return val
+        else:
+            length_typ = read_bits(1)
+            args = ()
+            if length_typ == 0:
+                bits_to_read = read_bits(15)
+                pos_finish = pos + bits_to_read
+                while pos < pos_finish:
+                    args += (read_packet(),)
+            else:
+                packets_to_read = read_bits(11)
+                for _ in range(packets_to_read):
+                    args += (read_packet(),)
+            return ops[typ](*args)
 
+    res = read_packet()
+    return ver, res
 
-# def sum_ver(ops: ReadResult) -> int
 
 def sixteen1():
-    bin = hex2bin(get_raw())
-    res = parse(bin)
-    (v, _, _, _) = reduce(res)
-    print(v)
-    pass
+    lines = get_lines()
+    for line in lines:
+        print(parser(line))
 
 
 sixteen1()
