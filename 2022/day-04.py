@@ -15,10 +15,17 @@ def expand_range(range_str: str) -> set[int]:
     return set(range(start, end+1))
 
 
-def overlapping(items: list[str]) -> int:
+def subsets(items: list[str]) -> int:
     ranges = [item.split(",") for item in items]
     ranges = [tuple(map(expand_range, pair)) for pair in ranges]
     return sum([1 for left, right in ranges if left.issubset(right) or right.issubset(left)])
 
 
-print(overlapping(items()))
+def overlaps(items: list[str]) -> int:
+    ranges = [item.split(",") for item in items]
+    ranges = [tuple(map(expand_range, pair)) for pair in ranges]
+    return sum([1 for left, right in ranges if len(left.intersection(right)) > 0])
+
+
+print(subsets(items()))
+print(overlaps(items()))
