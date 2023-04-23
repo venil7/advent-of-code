@@ -24,3 +24,4 @@ def first_signal(signal: str, window_size=4) -> int:
 
 
 print(first_signal(signal()))
+print(first_signal(signal(), window_size=14))
