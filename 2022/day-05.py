@@ -37,20 +37,31 @@ def extract_instructions(items: list[str]) -> list[tuple[int, int, int]]:
     return list(map(parse_instruction, instructions))
 
 
-def execute_istruction(
+def execute_istruction1(
         inst: tuple[int, int, int], crates: list[list[str]]) -> list[list[str]]:
     num, frm, to = inst
-    for _ in range(num):
-        crates[to-1].append(crates[frm-1].pop())
+    # for _ in range(num):
+    #     crates[to-1].append(crates[frm-1].pop())
+    move = [crates[frm-1].pop() for _ in range(num)]
+    crates[to-1].extend(move)
     return crates
 
 
-def follow_instructions1(items: list[str]) -> str:
+def execute_istruction2(
+        inst: tuple[int, int, int], crates: list[list[str]]) -> list[list[str]]:
+    num, frm, to = inst
+    move = [crates[frm-1].pop() for _ in range(num)]
+    crates[to-1].extend(move[::-1])
+    return crates
+
+
+def follow_instructions1(items: list[str], execute=execute_istruction1) -> str:
     crates = extract_crates(items)
     instructions = extract_instructions(items)
     for inst in instructions:
-        crates = execute_istruction(inst, crates)
+        crates = execute(inst, crates)
     return "".join(map(lambda stack: stack[-1], crates))
 
 
 print(follow_instructions1(items()))
+print(follow_instructions1(items(), execute_istruction2))
