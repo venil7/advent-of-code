@@ -126,5 +126,24 @@ def items() -> list[str]:
 
 f = FileTree(items())
 f.run()
-print(f.root.calc_size())
-print(f.root.all_subdirs())
+# print(f.root.calc_size())
+
+# task1
+all_subdirs = []
+print(sum(
+    filter(
+        lambda size: size <= 100000,
+        map(lambda dir: dir.calc_size(), f.root.all_subdirs())
+    )
+))
+
+# task 2
+disk_size = 70000000
+total_used = f.root.calc_size()
+free_now = disk_size-total_used
+need_to_free = 30000000 - free_now
+
+big_enough = filter(lambda size: size >= need_to_free,
+                    (sorted(map(lambda dir: dir.calc_size(),
+                                f.root.all_subdirs()), reverse=True)))
+print(list(big_enough)[-1])
