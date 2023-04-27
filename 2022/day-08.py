@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from typing import Callable
 
 
 file_name = "{dir}/data/day-08.txt".format(dir=os.path.dirname(__file__))
@@ -51,3 +52,41 @@ def task1(grid: list[list[int]]) -> int:
 
 
 print(task1(grid()))
+
+
+def visibility_calc(grid: np.array, val: int, coord: tuple[int, int], next: Callable):
+    (height, width) = grid.shape
+    (y, x) = coord
+    if y < 0 or y >= height:
+        return 0
+    if x < 0 or x >= width:
+        return 0
+    current = grid[y, x]
+    if current >= val:
+        return 1
+    return 1 + visibility_calc(grid, val, next(y, x), next)
+
+
+def visibility_index(grid: np.array, coord: tuple[int, int]):
+    (y, x) = coord
+    def next_up(y, x): return (y-1, x)
+    def next_down(y, x): return (y+1, x)
+    def next_left(y, x): return (y, x-1)
+    def next_right(y, x): return (y, x+1)
+
+    return np.prod([visibility_calc(grid, grid[y, x], next_up(y, x),  next_up),
+                    visibility_calc(
+                        grid, grid[y, x], next_down(y, x),  next_down),
+                    visibility_calc(
+                        grid, grid[y, x], next_left(y, x),  next_left),
+                    visibility_calc(grid, grid[y, x], next_right(y, x),  next_right)])
+
+
+def task2(grid: list[list[int]]) -> int:
+    grid = np.array(grid)
+    (height, width) = grid.shape
+    return max([visibility_index(grid, (y, x)) for y in range(height)
+                for x in range(width)])
+
+
+print(task2(grid()))
